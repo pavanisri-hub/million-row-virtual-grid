@@ -1,0 +1,28 @@
+{
+  "name": "million-row-virtual-grid",
+  "version": "1.0.0",
+  "private": true,
+  "description": "High-performance 1,000,000-row virtualized financial data grid",
+  "main": "index.js",
+  "scripts": {
+  "start": "webpack serve --mode development --open",
+  "build": "webpack --mode production",
+  "generate-data": "node ./scripts/generate-data.js"
+},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/preset-react": "^7.26.0",
+    "babel-loader": "^9.2.1",
+    "webpack": "^5.97.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.0.4"
+  }
+}
