@@ -29,14 +29,18 @@ function VirtualizedGrid() {
   // filter state
   const [merchantFilterInput, setMerchantFilterInput] = useState("");
   const [merchantFilter, setMerchantFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState(null); // "Completed" | "Pending" | null
+  const [statusFilter, setStatusFilter] = useState(null);
 
-  // selection state (track ids)
+  // selection state
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   // editing state
-  const [editingCell, setEditingCell] = useState(null); // { rowId, columnKey } | null
+  const [editingCell, setEditingCell] = useState(null);
   const [editingValue, setEditingValue] = useState("");
+
+  // pinning state
+  const [pinnedId, setPinnedId] = useState(false);
+  const [pinnedDate, setPinnedDate] = useState(false);
 
   const scrollContainerRef = useRef(null);
 
@@ -87,7 +91,7 @@ function VirtualizedGrid() {
     return () => clearTimeout(handler);
   }, [merchantFilterInput]);
 
-  // Apply filtering to full dataset
+  // Apply filtering
   const filteredRows = useMemo(() => {
     if (!rows || rows.length === 0) return rows;
 
@@ -106,7 +110,7 @@ function VirtualizedGrid() {
     return result;
   }, [rows, merchantFilter, statusFilter]);
 
-  // Apply sorting to filtered dataset
+  // Apply sorting
   const sortedRows = useMemo(() => {
     if (!filteredRows || filteredRows.length === 0) return filteredRows;
     if (!sortConfig.key || sortConfig.direction === SORT_DIRECTIONS.NONE) {
@@ -181,7 +185,7 @@ function VirtualizedGrid() {
     };
   }, []);
 
-  // Click handlers for sort headers
+  // Sort header logic
   const toggleSort = (key) => {
     setSortConfig((prev) => {
       if (prev.key !== key) {
@@ -232,7 +236,7 @@ function VirtualizedGrid() {
 
   const isRowSelected = (rowId) => selectedIds.has(rowId);
 
-  // Editing handlers (merchant column)
+  // Editing handlers
   const startEditingCell = (rowId, columnKey, initialValue) => {
     setEditingCell({ rowId, columnKey });
     setEditingValue(initialValue);
@@ -263,8 +267,34 @@ function VirtualizedGrid() {
     }
   };
 
+  // Pinning handlers
+  const togglePinId = () => {
+    setPinnedId((prev) => !prev);
+  };
+
+  const togglePinDate = () => {
+    setPinnedDate((prev) => !prev);
+  };
+
+  const pinnedClass = (pinned) => (pinned ? "pinned-column" : "");
+
   return (
     <div style={{ position: "relative" }}>
+      {/* Inline styles for pinned-column class */}
+      <style>
+        {`
+          .pinned-column {
+            position: sticky;
+            left: 0;
+            z-index: 3;
+            background: #f5f5f5;
+          }
+          .pinned-column.date {
+            left: 80px; /* width of ID column */
+          }
+        `}
+      </style>
+
       {/* Debug Panel */}
       <div
         data-test-id="debug-panel"
@@ -290,8 +320,15 @@ function VirtualizedGrid() {
         </div>
       </div>
 
-      {/* Filter controls */}
-      <div style={{ marginBottom: "8px", display: "flex", gap: "8px" }}>
+      {/* Filter + pin controls */}
+      <div
+        style={{
+          marginBottom: "8px",
+          display: "flex",
+          gap: "8px",
+          flexWrap: "wrap"
+        }}
+      >
         <input
           type="text"
           data-test-id="filter-merchant"
@@ -345,6 +382,32 @@ function VirtualizedGrid() {
         >
           Clear Status
         </button>
+
+        {/* Pin controls */}
+        <button
+          type="button"
+          data-test-id="pin-column-id"
+          onClick={togglePinId}
+          style={{
+            padding: "4px 8px",
+            fontSize: "13px",
+            cursor: "pointer"
+          }}
+        >
+          {pinnedId ? "Unpin ID" : "Pin ID"}
+        </button>
+        <button
+          type="button"
+          data-test-id="pin-column-date"
+          onClick={togglePinDate}
+          style={{
+            padding: "4px 8px",
+            fontSize: "13px",
+            cursor: "pointer"
+          }}
+        >
+          {pinnedDate ? "Unpin Date" : "Pin Date"}
+        </button>
       </div>
 
       {/* Grid */}
@@ -355,7 +418,7 @@ function VirtualizedGrid() {
           position: "relative",
           height: "80vh",
           border: "1px solid #ccc",
-          overflowY: "auto",
+          overflow: "auto",
           fontFamily: "sans-serif"
         }}
         onScroll={onScroll}
@@ -375,14 +438,24 @@ function VirtualizedGrid() {
         >
           <div
             data-test-id="header-id"
-            style={{ width: "80px", padding: "0 8px", cursor: "pointer" }}
+            className={pinnedId ? "pinned-column" : ""}
+            style={{
+              width: "80px",
+              padding: "0 8px",
+              cursor: "pointer"
+            }}
             onClick={() => toggleSort("id")}
           >
             ID{sortIndicator("id")}
           </div>
           <div
             data-test-id="header-date"
-            style={{ width: "180px", padding: "0 8px", cursor: "pointer" }}
+            className={pinnedDate ? "pinned-column date" : ""}
+            style={{
+              width: "180px",
+              padding: "0 8px",
+              cursor: "pointer"
+            }}
             onClick={() => toggleSort("date")}
           >
             Date{sortIndicator("date")}
@@ -470,8 +543,18 @@ function VirtualizedGrid() {
                     cursor: "pointer"
                   }}
                 >
-                  <div style={{ width: "80px" }}>{row.id}</div>
-                  <div style={{ width: "180px" }}>{row.date}</div>
+                  <div
+                    className={pinnedId ? "pinned-column" : ""}
+                    style={{ width: "80px" }}
+                  >
+                    {row.id}
+                  </div>
+                  <div
+                    className={pinnedDate ? "pinned-column date" : ""}
+                    style={{ width: "180px" }}
+                  >
+                    {row.date}
+                  </div>
                   <div
                     style={{ width: "160px" }}
                     onDoubleClick={(e) => {
@@ -479,7 +562,6 @@ function VirtualizedGrid() {
                       startEditingCell(row.id, "merchant", row.merchant);
                     }}
                   >
-                    {/* For requirement: cell-0-merchant */}
                     {rowIndex === 0 ? (
                       <div data-test-id="cell-0-merchant">
                         {isEditingMerchant ? (
